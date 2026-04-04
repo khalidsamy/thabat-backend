@@ -25,15 +25,12 @@ exports.getProgress = async (req, res, next) => {
       });
     }
 
-    // ── Milestone 3: Daily Auto-Reset Logic ─────────────────────
+    // Daily reset logic for trackers and progress
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    // Check if progress has a lastUpdate and compare it to today
     const lastUpdateDate = progress.lastUpdate ? new Date(progress.lastUpdate.getFullYear(), progress.lastUpdate.getMonth(), progress.lastUpdate.getDate()) : null;
 
     if (!lastUpdateDate || today.getTime() > lastUpdateDate.getTime()) {
-      // New day started! Reset daily counters
       progress.doneToday = 0;
       progress.sunnahCompletedToday = false;
       progress.lastUpdate = today;
@@ -230,12 +227,7 @@ exports.getChartData = async (req, res, next) => {
 };
 
 
-/**
- * @desc    Update user progress and calculate streak
-
- * @route   POST /api/progress/update
- * @access  Private
- */
+// POST /api/progress/update - Update progress and streak
 exports.updateProgress = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -333,7 +325,7 @@ exports.toggleSunnah = async (req, res, next) => {
 
     progress.sunnahCompletedToday = !progress.sunnahCompletedToday;
     
-    // Ensure we mark the date so the reset logic works correctly
+    // Mark date for reset consistency
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     progress.lastUpdate = today;

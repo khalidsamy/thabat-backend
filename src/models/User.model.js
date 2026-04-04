@@ -32,6 +32,9 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    /**
+     * User's preferred review pace in days (7, 10, or 14)
+     */
     reviewPace: {
       type: Number,
       enum: [7, 10, 14],

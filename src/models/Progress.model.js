@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
 
+/**
+ * Progress Schema
+ * Tracks user memorization, review daily targets, and streak history.
+ */
 const progressSchema = new mongoose.Schema(
   {
     user: {

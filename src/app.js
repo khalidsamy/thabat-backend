@@ -17,11 +17,10 @@ app.use(helmet());
 
 
 // CORS Configuration
-// Extracted to explicitly map the Dev Localhost alongside the Production pipeline automatically.
 const allowedOrigins = [
   'http://localhost:5173',
   process.env.CLIENT_URL
-].filter(Boolean); // Clean any undefined values if CLIENT_URL is empty
+].filter(Boolean);
 
 app.use(cors({
   origin: allowedOrigins,
@@ -33,7 +32,7 @@ app.use(cors({
 // Body Parsing
 app.use(express.json());
 
-// Production Logging
+// Logging
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
