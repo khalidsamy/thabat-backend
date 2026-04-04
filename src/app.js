@@ -12,22 +12,34 @@ const mutashabihRoutes = require('./routes/mutashabihat.routes');
 
 const app = express();
 
-// Security Headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
-
-// CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
   'https://thabat-app-eight.vercel.app',
-  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : [])
-].filter(Boolean);
+  /\.vercel\.app$/ 
+];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) return allowed.test(origin);
+      return allowed === origin;
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS: Origin not allowed by Thabat security policy'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
 // Body Parsing
@@ -40,7 +52,6 @@ if (process.env.NODE_ENV === 'production') {
     next();
   });
 }
-
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -79,11 +90,9 @@ app.use((req, res) => {
 });
 
 // Global Error Handler
-// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error(`[ERROR] ${req.method} ${req.originalUrl} →`, err.message);
 
-  // MongoDB duplicate key error
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || 'field';
     return res.status(409).json({
@@ -92,7 +101,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Mongoose validation error
   if (err.name === 'ValidationError') {
     const messages = Object.values(err.errors).map((e) => e.message);
     return res.status(400).json({
@@ -101,7 +109,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // JWT errors
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
@@ -116,7 +123,7 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // CORS rejection
+  // CORS rejection handling
   if (err.message && err.message.startsWith('CORS:')) {
     return res.status(403).json({
       success: false,
@@ -124,7 +131,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Fallback
   const statusCode = err.statusCode || err.status || 500;
   res.status(statusCode).json({
     success: false,
