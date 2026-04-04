@@ -38,7 +38,7 @@ exports.getProgress = async (req, res, next) => {
       await progress.save();
     }
 
-    const masteryPercent = Math.min(100, Math.round(((progress.totalMemorized || 0) / 604) * 100));
+    const masteryPercent = Math.min(100, Math.round(((progress.totalMemorized || 0) / (progress.totalMushafPages || 604)) * 100));
 
     res.status(200).json({
       success: true,
@@ -130,7 +130,7 @@ exports.getStats = async (req, res, next) => {
       completionRate = Math.round(Math.min(Math.max(rateRaw, 0), 100));
     }
 
-    const masteryPercent = Math.min(100, Math.round(((progress.totalMemorized || 0) / 604) * 100));
+    const masteryPercent = Math.min(100, Math.round(((progress.totalMemorized || 0) / (progress.totalMushafPages || 604)) * 100));
 
     res.status(200).json({
       success: true,
@@ -258,8 +258,8 @@ exports.updateProgress = async (req, res, next) => {
     progress.currentPage += pages;
     progress.totalMemorized += pages;
 
-    progress.currentPage = Math.min(progress.currentPage, 604);
-    progress.totalMemorized = Math.min(progress.totalMemorized, 604);
+    progress.currentPage = Math.min(progress.currentPage, progress.totalMushafPages || 604);
+    progress.totalMemorized = Math.min(progress.totalMemorized, progress.totalMushafPages || 604);
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());

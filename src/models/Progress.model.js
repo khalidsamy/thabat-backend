@@ -16,7 +16,11 @@ const progressSchema = new mongoose.Schema(
       type: Number,
       default: 1,
       min: [1, 'Current page cannot be less than 1'],
-      max: [604, 'Current page cannot exceed 604 (Quran total pages)'],
+    },
+    totalMushafPages: {
+      type: Number,
+      default: 604,
+      min: [1, 'Total pages must be at least 1'],
     },
     totalMemorized: {
       type: Number,
