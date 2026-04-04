@@ -20,8 +20,24 @@ exports.getProgress = async (req, res, next) => {
           totalMemorized: 0,
           dailyTarget: 1,
           streak: 0,
+          sunnahCompletedToday: false,
         },
       });
+    }
+
+    // ── Milestone 3: Daily Auto-Reset Logic ─────────────────────
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Check if progress has a lastUpdate and compare it to today
+    const lastUpdateDate = progress.lastUpdate ? new Date(progress.lastUpdate.getFullYear(), progress.lastUpdate.getMonth(), progress.lastUpdate.getDate()) : null;
+
+    if (!lastUpdateDate || today.getTime() > lastUpdateDate.getTime()) {
+      // New day started! Reset daily counters
+      progress.doneToday = 0;
+      progress.sunnahCompletedToday = false;
+      progress.lastUpdate = today;
+      await progress.save();
     }
 
     res.status(200).json({
@@ -295,6 +311,38 @@ exports.updateProgress = async (req, res, next) => {
     res.status(200).json({
       success: true,
       progress,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle Sunnah prayer completion state
+ * @route   PUT /api/progress/toggle-sunnah
+ * @access  Private
+ */
+exports.toggleSunnah = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    let progress = await Progress.findOne({ user: userId });
+
+    if (!progress) {
+      progress = new Progress({ user: userId });
+    }
+
+    progress.sunnahCompletedToday = !progress.sunnahCompletedToday;
+    
+    // Ensure we mark the date so the reset logic works correctly
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    progress.lastUpdate = today;
+    
+    await progress.save();
+
+    res.status(200).json({
+      success: true,
+      sunnahCompletedToday: progress.sunnahCompletedToday,
     });
   } catch (error) {
     next(error);

@@ -40,6 +40,10 @@ router.get('/chart', progressController.getChartData);
  * @desc    Update user progress
  * @route   POST /api/progress/update
  */
-router.post('/update', progressController.updateProgress);
+/**
+ * @desc    Toggle Sunnah prayer completion state
+ * @route   PUT /api/progress/toggle-sunnah
+ */
+router.put('/toggle-sunnah', progressController.toggleSunnah);
 
 module.exports = router;

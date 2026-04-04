@@ -37,6 +37,10 @@ const progressSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'Progress cannot be negative'],
     },
+    sunnahCompletedToday: {
+      type: Boolean,
+      default: false,
+    },
     history: [
       {
         date: {
