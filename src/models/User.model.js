@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema(
       enum: [7, 10, 14],
       default: 10,
     },
+    currentTargetSurah: {
+      type: String,
+      default: 'Al-Baqarah',
+    },
   },
   {
     timestamps: true,

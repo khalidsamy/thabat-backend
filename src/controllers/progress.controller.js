@@ -37,9 +37,14 @@ exports.getProgress = async (req, res, next) => {
       await progress.save();
     }
 
+    const masteryPercent = Math.min(100, Math.round(((progress.totalMemorized || 0) / 604) * 100));
+
     res.status(200).json({
       success: true,
-      progress,
+      progress: {
+        ...progress.toObject(),
+        masteryPercent
+      },
     });
   } catch (error) {
     next(error);
@@ -124,6 +129,8 @@ exports.getStats = async (req, res, next) => {
       completionRate = Math.round(Math.min(Math.max(rateRaw, 0), 100));
     }
 
+    const masteryPercent = Math.min(100, Math.round(((progress.totalMemorized || 0) / 604) * 100));
+
     res.status(200).json({
       success: true,
       stats: {
@@ -132,6 +139,7 @@ exports.getStats = async (req, res, next) => {
         streak: progress.streak,
         longestStreak: progress.longestStreak || 0,
         completionRate,
+        masteryPercent
       },
     });
   } catch (error) {

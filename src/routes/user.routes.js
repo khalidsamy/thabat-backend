@@ -15,13 +15,9 @@ const {
  * @access  Private
  */
 router.get('/profile', protect, getUserProfile);
-
-/**
- * @desc    Update user profile (Name)
- * @route   PUT /api/user/profile
- * @access  Private
- */
+router.patch('/profile', protect, updateProfile);
 router.put('/profile', protect, updateProfile);
+router.put('/password', protect, changePassword);
 
 /**
  * @desc    Change user password
