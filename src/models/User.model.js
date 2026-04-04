@@ -32,6 +32,11 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    reviewPace: {
+      type: Number,
+      enum: [7, 10, 14],
+      default: 10,
+    },
   },
   {
     timestamps: true,

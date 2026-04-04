@@ -23,6 +23,7 @@ const getUserProfile = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        reviewPace: user.reviewPace || 10,
       },
     });
   } catch (error) {
@@ -37,18 +38,14 @@ const getUserProfile = async (req, res, next) => {
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const { name } = req.body;
-
-    if (!name || name.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Name cannot be empty',
-      });
-    }
+    const { name, reviewPace } = req.body;
+    const updateData = {};
+    if (name) updateData.name = name.trim();
+    if (reviewPace) updateData.reviewPace = reviewPace;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.userId,
-      { name: name.trim() },
+      updateData,
       { new: true, runValidators: true }
     ).select('-passwordHash');
 
@@ -65,6 +62,7 @@ const updateProfile = async (req, res, next) => {
         id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
+        reviewPace: updatedUser.reviewPace,
       },
     });
   } catch (error) {
