@@ -41,6 +41,12 @@ router.get('/chart', progressController.getChartData);
  * @route   POST /api/progress/update
  */
 /**
+ * @desc    Update user progress
+ * @route   POST /api/progress/update
+ */
+router.post('/update', progressController.updateProgress);
+
+/**
  * @desc    Toggle Sunnah prayer completion state
  * @route   PUT /api/progress/toggle-sunnah
  */
