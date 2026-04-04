@@ -8,6 +8,7 @@ const progressRoutes = require('./routes/progress.routes');
 const leaderboardRoutes = require('./routes/leaderboard.routes');
 const achievementsRoutes = require('./routes/achievements.routes');
 const errorsRoutes = require('./routes/errors.routes');
+const mutashabihRoutes = require('./routes/mutashabihat.routes');
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/achievements', achievementsRoutes);
 app.use('/api/errors', errorsRoutes);
+app.use('/api/mutashabihat', mutashabihRoutes);
 
 // 404 Handler
 app.use((req, res) => {
