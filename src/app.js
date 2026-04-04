@@ -19,7 +19,7 @@ app.use(helmet());
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://thabat-mu.vercel.app',
+  'https://thabat-app-eight.vercel.app',
   ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : [])
 ].filter(Boolean);
 
