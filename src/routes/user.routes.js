@@ -3,33 +3,31 @@ const router = express.Router();
 const { protect } = require('../middleware/auth.middleware');
 const User = require('../models/User.model');
 
+const { 
+  getUserProfile, 
+  updateProfile, 
+  changePassword 
+} = require('../controllers/user.controller');
+
 /**
  * @desc    Get user profile
  * @route   GET /api/user/profile
- * @access  Private (Requires token)
+ * @access  Private
  */
-router.get('/profile', protect, async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-passwordHash');
+router.get('/profile', protect, getUserProfile);
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
+/**
+ * @desc    Update user profile (Name)
+ * @route   PUT /api/user/profile
+ * @access  Private
+ */
+router.put('/profile', protect, updateProfile);
 
-    res.status(200).json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+/**
+ * @desc    Change user password
+ * @route   PUT /api/user/password
+ * @access  Private
+ */
+router.put('/password', protect, changePassword);
 
 module.exports = router;

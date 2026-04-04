@@ -15,26 +15,18 @@ app.use(helmet());
 
 
 // CORS Configuration
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',').map((o) => o.trim())
-  : ['http://localhost:5173'];
+// Extracted to explicitly map the Dev Localhost alongside the Production pipeline automatically.
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.CLIENT_URL
+].filter(Boolean); // Clean any undefined values if CLIENT_URL is empty
 
-
-app.use(
-  cors({
-    origin: (incomingOrigin, callback) => {
-      // Allow requests with no origin (e.g., server-to-server)
-      if (!incomingOrigin) return callback(null, true);
-
-      if (allowedOrigins.includes(incomingOrigin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS: origin '${incomingOrigin}' is not allowed`));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Body Parsing
 app.use(express.json());
