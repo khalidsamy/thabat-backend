@@ -1,4 +1,5 @@
 const Progress = require('../models/Progress.model');
+const User = require('../models/User.model');
 
 /**
  * @desc    Get current user progress
@@ -343,6 +344,48 @@ exports.toggleSunnah = async (req, res, next) => {
     res.status(200).json({
       success: true,
       sunnahCompletedToday: progress.sunnahCompletedToday,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+/**
+ * @desc    Save AI recitation mastery score
+ * @route   POST /api/progress/mastery
+ * @access  Private
+ */
+exports.saveMastery = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { score, surah } = req.body;
+
+    if (score === undefined || !surah) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide score and surah',
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    user.masteryHistory.push({ score, surah });
+    
+    // Efficiently limit history to last 50 entries
+    if (user.masteryHistory.length > 50) {
+      user.masteryHistory = user.masteryHistory.slice(-50);
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      masteryHistory: user.masteryHistory,
     });
   } catch (error) {
     next(error);

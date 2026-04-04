@@ -44,6 +44,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'Al-Baqarah',
     },
+    masteryHistory: [
+      {
+        score: Number,
+        surah: String,
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

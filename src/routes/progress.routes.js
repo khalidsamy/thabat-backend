@@ -52,4 +52,10 @@ router.post('/update', progressController.updateProgress);
  */
 router.put('/toggle-sunnah', progressController.toggleSunnah);
 
+/**
+ * @desc    Save AI recitation mastery score
+ * @route   POST /api/progress/mastery
+ */
+router.post('/mastery', progressController.saveMastery);
+
 module.exports = router;
