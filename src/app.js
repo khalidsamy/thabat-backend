@@ -1,145 +1,68 @@
 const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
-const progressRoutes = require('./routes/progress.routes');
-const leaderboardRoutes = require('./routes/leaderboard.routes');
-const achievementsRoutes = require('./routes/achievements.routes');
-const errorsRoutes = require('./routes/errors.routes');
-const mutashabihRoutes = require('./routes/mutashabihat.routes');
-const communityRoutes = require('./routes/community.routes');
+const cors    = require('cors');
 
 const app = express();
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
-
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://thabat-app-eight.vercel.app',
-  /\.vercel\.app$/ 
-];
+// Only allow explicitly listed origins — wildcard (*) would expose the API
+// to any website, making credential-based attacks trivial.
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:5173'];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) return allowed.test(origin);
-      return allowed === origin;
-    });
-
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS: Origin not allowed by Thabat security policy'));
-    }
+  origin: (incoming, callback) => {
+    if (!incoming) return callback(null, true); // curl / Postman / SSR
+    if (allowedOrigins.includes(incoming)) return callback(null, true);
+    callback(new Error(`CORS: origin '${incoming}' is not allowed`));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
-// Body Parsing
 app.use(express.json());
 
-// Logging
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-    next();
-  });
-}
-
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Thabat API is running',
-    timestamp: new Date().toISOString(),
-  });
+app.get('/api/health', (_req, res) => {
+  res.json({ success: true, message: 'Thabat API is running', ts: new Date().toISOString() });
 });
 
-// Rate Limiting
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again after 15 minutes',
-  },
-});
+// Routes mounted here — see each routes/ file for endpoint definitions
+// app.use('/api/auth',      require('./routes/auth.routes'));
+// app.use('/api/progress',  require('./routes/progress.routes'));
+// app.use('/api/errors',    require('./routes/errors.routes'));
 
-// API Routes
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/progress', progressRoutes);
-app.use('/api/leaderboard', leaderboardRoutes);
-app.use('/api/achievements', achievementsRoutes);
-app.use('/api/errors', errorsRoutes);
-app.use('/api/mutashabihat', mutashabihRoutes);
-app.use('/api/community', communityRoutes);
-
-// 404 Handler
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
-  });
+  res.status(404).json({ success: false, message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
-// Global Error Handler
+// Four-argument signature is how Express identifies this as an error handler.
+// All thrown errors and next(err) calls land here.
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error(`[ERROR] ${req.method} ${req.originalUrl} →`, err.message);
+  console.error(`[${req.method}] ${req.originalUrl} →`, err.message);
 
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || 'field';
-    return res.status(409).json({
-      success: false,
-      message: `An account with this ${field} already exists`,
-    });
+    return res.status(409).json({ success: false, message: `An account with this ${field} already exists` });
   }
-
   if (err.name === 'ValidationError') {
-    const messages = Object.values(err.errors).map((e) => e.message);
-    return res.status(400).json({
-      success: false,
-      message: messages.join('. '),
-    });
+    return res.status(400).json({ success: false, message: Object.values(err.errors).map((e) => e.message).join('. ') });
   }
-
   if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token. Please log in again.',
-    });
+    return res.status(401).json({ success: false, message: 'Invalid token. Please log in again.' });
   }
-
   if (err.name === 'TokenExpiredError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Your session has expired. Please log in again.',
-    });
+    return res.status(401).json({ success: false, message: 'Your session has expired. Please log in again.' });
+  }
+  if (err.message?.startsWith('CORS:')) {
+    return res.status(403).json({ success: false, message: err.message });
   }
 
-  // CORS rejection handling
-  if (err.message && err.message.startsWith('CORS:')) {
-    return res.status(403).json({
-      success: false,
-      message: err.message,
-    });
-  }
-
-  const statusCode = err.statusCode || err.status || 500;
-  res.status(statusCode).json({
+  // Hide stack traces from clients in production — they are information leaks.
+  const status = err.statusCode || err.status || 500;
+  res.status(status).json({
     success: false,
-    message:
-      process.env.NODE_ENV === 'production'
-        ? 'Something went wrong. Please try again later.'
-        : err.message || 'Internal server error',
+    message: process.env.NODE_ENV === 'production'
+      ? 'Something went wrong. Please try again later.'
+      : err.message || 'Internal server error',
   });
 });
 

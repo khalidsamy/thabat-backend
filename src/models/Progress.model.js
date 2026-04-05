@@ -1,9 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * Progress Schema
- * Tracks user memorization, review daily targets, and streak history.
- */
 const progressSchema = new mongoose.Schema(
   {
     user: {
@@ -20,53 +16,52 @@ const progressSchema = new mongoose.Schema(
     totalMushafPages: {
       type: Number,
       default: 604,
-      min: [1, 'Total pages must be at least 1'],
     },
     totalMemorized: {
       type: Number,
       default: 0,
-      min: [0, 'Total memorized cannot be negative'],
+      min: 0,
     },
     dailyTarget: {
       type: Number,
       default: 1,
-      min: [1, 'Daily target must be at least 1'],
+      min: 1,
     },
-    lastUpdate: {
-      type: Date,
-    },
+    lastUpdate: Date,
     streak: {
       type: Number,
       default: 0,
-      min: [0, 'Streak cannot be negative'],
+      min: 0,
+    },
+    // longestStreak was referenced in the controller but absent from the schema,
+    // causing every progress.save() to silently discard the value.
+    longestStreak: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     doneToday: {
       type: Number,
       default: 0,
-      min: [0, 'Progress cannot be negative'],
+      min: 0,
     },
     sunnahCompletedToday: {
       type: Boolean,
       default: false,
     },
+    // Denormalized here so the dashboard header can show it without a User join.
+    currentSurahName: {
+      type: String,
+      default: '',
+    },
     history: [
       {
-        date: {
-          type: Date,
-          required: true,
-        },
-        pages: {
-          type: Number,
-          default: 0,
-        },
+        date:  { type: Date, required: true },
+        pages: { type: Number, default: 0 },
       },
     ],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const Progress = mongoose.model('Progress', progressSchema);
-
-module.exports = Progress;
+module.exports = mongoose.model('Progress', progressSchema);
