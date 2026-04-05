@@ -1,10 +1,9 @@
 const express = require('express');
 const cors    = require('cors');
+const mongoose = require('mongoose');
 
 const app = express();
 
-// Only allow explicitly listed origins — wildcard (*) would expose the API
-// to any website, making credential-based attacks trivial.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
   : ['http://localhost:5173'];
@@ -24,18 +23,14 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'Thabat API is running', ts: new Date().toISOString() });
 });
 
-// Routes mounted here — see each routes/ file for endpoint definitions
 // app.use('/api/auth',      require('./routes/auth.routes'));
 // app.use('/api/progress',  require('./routes/progress.routes'));
 // app.use('/api/errors',    require('./routes/errors.routes'));
-
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
-// Four-argument signature is how Express identifies this as an error handler.
-// All thrown errors and next(err) calls land here.
-// eslint-disable-next-line no-unused-vars
+// 5. معالج الأخطاء العام (Global Error Handler)
 app.use((err, req, res, next) => {
   console.error(`[${req.method}] ${req.originalUrl} →`, err.message);
 
@@ -56,7 +51,6 @@ app.use((err, req, res, next) => {
     return res.status(403).json({ success: false, message: err.message });
   }
 
-  // Hide stack traces from clients in production — they are information leaks.
   const status = err.statusCode || err.status || 500;
   res.status(status).json({
     success: false,
@@ -65,5 +59,26 @@ app.use((err, req, res, next) => {
       : err.message || 'Internal server error',
   });
 });
+
+const runMigration = async () => {
+  try {
+    const Progress = mongoose.model('Progress'); 
+    
+    const result = await Progress.updateMany(
+      { longestStreak: { $exists: false } },
+      [{ $set: { longestStreak: "$streak", currentSurahName: "البقرة" } }]
+    );
+    
+    if (result.modifiedCount > 0) {
+      console.log(`✅ Database Linked & Updated: ${result.modifiedCount} records fixed.`);
+    } else {
+      console.log("ℹ️ Database is already up to date.");
+    }
+  } catch (err) {
+    console.log("⏳ Waiting for database models to load...");
+  }
+};
+
+setTimeout(runMigration, 5000);
 
 module.exports = app;
