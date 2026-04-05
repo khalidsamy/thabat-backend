@@ -26,9 +26,9 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'Thabat API is running', ts: new Date().toISOString() });
 });
 
-// app.use('/api/auth',      require('./routes/auth.routes'));
-// app.use('/api/progress',  require('./routes/progress.routes'));
-// app.use('/api/errors',    require('./routes/errors.routes'));
+app.use('/api/auth',      require('./routes/auth.routes'));
+app.use('/api/progress',  require('./routes/progress.routes'));
+app.use('/api/errors',    require('./routes/errors.routes'));
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
