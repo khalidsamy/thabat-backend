@@ -13,20 +13,50 @@ const diffDays = (a, b) =>
 
 // ─── GET /api/progress ────────────────────────────────────────────────────
 
+// ─── REPLACE getProgress in progress.controller.js ───────────────────────
+//
+// Original returned a plain object literal for new users. This version
+// creates and persists the Progress document on first load so all subsequent
+// calls find a real record, preventing any stale-UI edge cases.
+
 exports.getProgress = async (req, res, next) => {
   try {
-    let progress = await Progress.findOne({ user: req.user.userId });
+    const userId = req.user.userId;
+    let progress = await Progress.findOne({ user: userId });
 
+    // First-time user: create a default Progress document immediately
+    // so the dashboard never has to work from a plain object.
     if (!progress) {
+      progress = await Progress.create({
+        user: userId,
+        currentPage: 1,
+        totalMemorized: 0,
+        dailyTarget: 1,
+        streak: 0,
+        longestStreak: 0,
+        doneToday: 0,
+        sunnahCompletedToday: false,
+        history: [],
+      });
+
       return res.status(200).json({
         success: true,
-        progress: { user: req.user.userId, currentPage: 1, totalMemorized: 0, dailyTarget: 1, streak: 0, sunnahCompletedToday: false },
+        progress: {
+          ...progress.toObject(),
+          masteryPercent: 0,
+        },
       });
     }
 
-    const today = todayDate();
+    // Daily reset
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const lastDate = progress.lastUpdate
-      ? new Date(new Date(progress.lastUpdate).getFullYear(), new Date(progress.lastUpdate).getMonth(), new Date(progress.lastUpdate).getDate())
+      ? new Date(
+          new Date(progress.lastUpdate).getFullYear(),
+          new Date(progress.lastUpdate).getMonth(),
+          new Date(progress.lastUpdate).getDate()
+        )
       : null;
 
     if (!lastDate || today.getTime() > lastDate.getTime()) {
@@ -36,13 +66,18 @@ exports.getProgress = async (req, res, next) => {
       await progress.save();
     }
 
-    const masteryPercent = Math.min(100, Math.round((progress.totalMemorized / (progress.totalMushafPages || 604)) * 100));
+    const masteryPercent = Math.min(
+      100,
+      Math.round(((progress.totalMemorized || 0) / (progress.totalMushafPages || 604)) * 100)
+    );
 
     res.status(200).json({
       success: true,
       progress: { ...progress.toObject(), masteryPercent },
     });
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 // ─── GET /api/progress/today ──────────────────────────────────────────────
