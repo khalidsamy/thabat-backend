@@ -17,4 +17,8 @@ router.post('/listened',     c.markListened);
 router.put('/toggle-sunnah', c.toggleSunnah);
 router.post('/mastery',      c.saveMastery);
 
+// ─── Revision Methodology (Sheikh Alaa Hamed) ─────────────────────────
+router.post('/complete-revision', c.completeRevision);
+router.post('/report-error',      c.reportError);
+
 module.exports = router;

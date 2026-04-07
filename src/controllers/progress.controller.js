@@ -65,6 +65,7 @@ exports.getProgress = async (req, res, next) => {
     if (!lastDate || today.getTime() > lastDate.getTime()) {
       progress.doneToday = 0;
       progress.sunnahCompletedToday = false;
+      progress.revisionCompletedToday = false; // Reset revision gate daily
       progress.lastUpdate = today;
       await progress.save();
     }
@@ -353,5 +354,55 @@ exports.saveMastery = async (req, res, next) => {
     );
 
     res.status(200).json({ success: true });
+  } catch (e) { next(e); }
+};
+// ─── POST /api/progress/complete-revision ────────────────────────────────
+// Marks the daily revision quota as completed for today.
+exports.completeRevision = async (req, res, next) => {
+  try {
+    const progress = await Progress.findOne({ user: req.user.userId });
+    if (!progress) return res.status(404).json({ success: false, message: 'Progress not found' });
+
+    progress.revisionCompletedToday = true;
+    progress.lastUpdate = todayDate();
+    await progress.save();
+
+    res.status(200).json({ success: true, revisionCompletedToday: true });
+  } catch (e) { next(e); }
+};
+
+// ─── POST /api/progress/report-error ──────────────────────────────────────
+// Logs a mistake during recitation and implements the "3-Error Wall" logic.
+exports.reportError = async (req, res, next) => {
+  try {
+    const { surahNumber, surahName } = req.body;
+    if (!surahNumber) return res.status(400).json({ success: false, message: 'surahNumber is required' });
+
+    const progress = await Progress.findOne({ user: req.user.userId });
+    if (!progress) return res.status(404).json({ success: false, message: 'Progress not found' });
+
+    // Ensure errorCounts exists (Map)
+    const currentCount = progress.errorCounts.get(surahNumber.toString()) || 0;
+    const newCount = currentCount + 1;
+    progress.errorCounts.set(surahNumber.toString(), newCount);
+
+    // 3-Error Wall: Flag as weak if failures reach threshold
+    if (newCount >= 3) {
+      const weakIdx = progress.weakSurahs.findIndex(s => s.surahNumber === surahNumber);
+      if (weakIdx === -1) {
+        progress.weakSurahs.push({
+          surahNumber,
+          surahName: surahName || '',
+          lastFailed: new Date(),
+          errorCount: newCount
+        });
+      } else {
+        progress.weakSurahs[weakIdx].errorCount = newCount;
+        progress.weakSurahs[weakIdx].lastFailed = new Date();
+      }
+    }
+
+    await progress.save();
+    res.status(200).json({ success: true, errorCount: newCount, isWeak: newCount >= 3 });
   } catch (e) { next(e); }
 };

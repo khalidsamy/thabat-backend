@@ -70,6 +70,32 @@ const progressSchema = new mongoose.Schema(
         ],
       },
     ],
+    // ─── Revision Methodology (Sheikh Alaa Hamed) ─────────────────────────
+    revisionCompletedToday: {
+      type: Boolean,
+      default: false,
+    },
+    revisionGoal: {
+      type: String,
+      enum: ['1_JUZ', '2_JUZ', 'HIZB', 'RUB_EL_HIZB', 'NONE'],
+      default: 'NONE',
+    },
+    // Track surahs that need extra attention (The 3-Error Wall)
+    weakSurahs: [
+      {
+        surahNumber: { type: Number },
+        surahName: { type: String },
+        lastFailed: { type: Date },
+        errorCount: { type: Number, default: 0 },
+      },
+    ],
+    // Map of surahNumber -> consecutive error count for current session
+    // Using a simple object/map for tracking.
+    errorCounts: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
   },
   { timestamps: true }
 );
