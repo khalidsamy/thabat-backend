@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const User = require('../models/User.model');
 
 /**
@@ -15,12 +16,12 @@ exports.getUserProfile = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       user
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
@@ -44,13 +45,13 @@ exports.updateProfile = async (req, res, next) => {
     }
 
     // Update optional fields
-    if (name) user.name = name;
-    if (currentTargetSurah) user.currentTargetSurah = currentTargetSurah;
-    if (reviewPace) user.reviewPace = reviewPace;
+    if (name !== undefined) user.name = name.trim();
+    if (currentTargetSurah !== undefined) user.currentTargetSurah = currentTargetSurah.trim();
+    if (reviewPace !== undefined) user.reviewPace = reviewPace;
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
       user: {
@@ -62,7 +63,7 @@ exports.updateProfile = async (req, res, next) => {
       }
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
@@ -70,6 +71,58 @@ exports.updateProfile = async (req, res, next) => {
  * @desc    Change user password
  */
 exports.changePassword = async (req, res, next) => {
-    // Basic stub for password change as it was in the routes
-    res.status(501).json({ success: false, message: 'Password change not yet implemented.' });
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required.',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters.',
+      });
+    }
+
+    const user = await User.findById(req.user.userId).select('+passwordHash');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect.',
+      });
+    }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
+
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from the current password.',
+      });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password changed successfully.',
+    });
+  } catch (error) {
+    return next(error);
+  }
 };

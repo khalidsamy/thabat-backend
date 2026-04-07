@@ -1,5 +1,6 @@
 const Reflection = require('../models/Reflection.js');
 const Progress = require('../models/Progress.model.js');
+const User = require('../models/User.model.js');
 
 /**
  * @desc    Post a spiritual reflection
@@ -43,10 +44,12 @@ exports.postReflection = async (req, res, next) => {
       });
     }
 
+    const user = await User.findById(userId).select('name');
+
     // Step 2: Create reflection
     const reflection = new Reflection({
       user: userId,
-      userName: req.user.name || 'A Servant of Allah',
+      userName: user?.name || 'A Servant of Allah',
       content
     });
 
@@ -101,7 +104,7 @@ exports.addDua = async (req, res, next) => {
     }
 
     // Prevent duplicate Du'as from same user
-    if (reflection.duas.includes(userId)) {
+    if (reflection.duas.some((duaUserId) => duaUserId.toString() === userId)) {
       return res.status(400).json({
         success: false,
         message: 'You have already offered a Du\'a for this reflection.'
