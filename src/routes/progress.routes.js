@@ -20,5 +20,6 @@ router.post('/mastery',      c.saveMastery);
 // ─── Revision Methodology (Sheikh Alaa Hamed) ─────────────────────────
 router.post('/complete-revision', c.completeRevision);
 router.post('/report-error',      c.reportError);
+router.put('/goal',              c.updateGoal);
 
 module.exports = router;

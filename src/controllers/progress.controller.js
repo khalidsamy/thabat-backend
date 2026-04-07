@@ -406,3 +406,23 @@ exports.reportError = async (req, res, next) => {
     res.status(200).json({ success: true, errorCount: newCount, isWeak: newCount >= 3 });
   } catch (e) { next(e); }
 };
+// ─── PUT /api/progress/goal ──────────────────────────────────────────────
+// Updates the chosen revision strategy (e.g., 1_JUZ, 2_JUZ).
+exports.updateGoal = async (req, res, next) => {
+  try {
+    const { goal } = req.body;
+    const validGoals = ['1_JUZ', '2_JUZ', 'HIZB', 'RUB_EL_HIZB', 'NONE'];
+    
+    if (!validGoals.includes(goal)) {
+      return res.status(400).json({ success: false, message: 'Invalid revision goal type' });
+    }
+
+    const progress = await Progress.findOneAndUpdate(
+      { user: req.user.userId },
+      { $set: { revisionGoal: goal } },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({ success: true, revisionGoal: progress.revisionGoal });
+  } catch (e) { next(e); }
+};
