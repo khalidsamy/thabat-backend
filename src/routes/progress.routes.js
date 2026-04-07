@@ -13,6 +13,7 @@ router.get('/chart',         c.getChartData);
 router.get('/mastery-trend', c.getMasteryTrend);   // ← new
 
 router.post('/update',       c.updateProgress);
+router.post('/listened',     c.markListened);
 router.put('/toggle-sunnah', c.toggleSunnah);
 router.post('/mastery',      c.saveMastery);
 

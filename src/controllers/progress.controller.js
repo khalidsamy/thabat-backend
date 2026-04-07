@@ -11,6 +11,9 @@ const todayDate = () => {
 const diffDays = (a, b) =>
   Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 
+const findHistoryEntryForDate = (history, date) =>
+  history.find((entry) => new Date(entry.date).getTime() === date.getTime());
+
 // ─── GET /api/progress ────────────────────────────────────────────────────
 
 // ─── REPLACE getProgress in progress.controller.js ───────────────────────
@@ -252,6 +255,59 @@ exports.updateProgress = async (req, res, next) => {
     await progress.save();
 
     res.status(200).json({ success: true, progress });
+  } catch (e) { next(e); }
+};
+
+// ─── POST /api/progress/listened ──────────────────────────────────────────
+// Stores a lightweight "listened" tag inside today's history entry without
+// touching streaks, doneToday, or currentPage progression.
+
+exports.markListened = async (req, res, next) => {
+  try {
+    const { surahNumber, surahName, reciter, reciterName } = req.body;
+
+    if (!surahNumber || typeof surahNumber !== 'number' || !surahName) {
+      return res.status(400).json({ success: false, message: 'surahNumber and surahName are required' });
+    }
+
+    let progress = await Progress.findOne({ user: req.user.userId });
+    if (!progress) progress = new Progress({ user: req.user.userId });
+
+    const today = todayDate();
+    let historyEntry = findHistoryEntryForDate(progress.history, today);
+
+    if (!historyEntry) {
+      progress.history.push({ date: today, pages: 0, listenedSurahs: [] });
+      historyEntry = progress.history[progress.history.length - 1];
+    }
+
+    const alreadyMarked = (historyEntry.listenedSurahs || []).some(
+      (item) => item.surahNumber === surahNumber,
+    );
+
+    if (!alreadyMarked) {
+      historyEntry.listenedSurahs.push({
+        surahNumber,
+        surahName,
+        reciter: reciter || '',
+        reciterName: reciterName || '',
+        listenedAt: new Date(),
+        tag: 'listened',
+      });
+      progress.markModified('history');
+    }
+
+    const cutoff = new Date(today.getTime() - 60 * 86400000);
+    progress.history = progress.history.filter((entry) => new Date(entry.date).getTime() >= cutoff.getTime());
+
+    await progress.save();
+
+    res.status(200).json({
+      success: true,
+      listened: true,
+      alreadyMarked,
+      historyEntry,
+    });
   } catch (e) { next(e); }
 };
 

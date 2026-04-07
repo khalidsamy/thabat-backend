@@ -58,6 +58,16 @@ const progressSchema = new mongoose.Schema(
       {
         date:  { type: Date, required: true },
         pages: { type: Number, default: 0 },
+        listenedSurahs: [
+          {
+            surahNumber: { type: Number, required: true },
+            surahName: { type: String, default: '' },
+            reciter: { type: String, default: '' },
+            reciterName: { type: String, default: '' },
+            listenedAt: { type: Date, default: Date.now },
+            tag: { type: String, default: 'listened' },
+          },
+        ],
       },
     ],
   },
