@@ -4,50 +4,50 @@ exports.chatWithCoach = async (req, res) => {
   try {
     const { message, history } = req.body;
 
-    if (!process.env.GEMINI_API_KEY) {
-       throw new Error("API Key is missing from environment variables!");
-    }
+    if (!message) return res.status(400).json({ success: false, message: "Message is required." });
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-    // 1. استخدام الموديل الأحدث مع تعريف الشخصية (متاح الآن بفضل المفتاح الجديد)
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
-      systemInstruction: "أنت 'مساعد ثبات الذكي'، خبير في علوم القرآن وحفظه بمنهج الشيخ علاء حامد. أجب باللغة العربية بأسلوب محفز، عملي، ومختصر."
+      systemInstruction: "أنت 'مساعد ثبات الذكي'. خبير في القرآن الكريم ومنهج الشيخ علاء حامد. رد بالعربية بأسلوب محفز وقصير."
     });
 
-    // 2. تنظيف التاريخ مبدئياً
-    let rawHistory = (history || []).map(msg => ({
-      role: (msg.role === 'ai' || msg.role === 'model') ? 'model' : 'user',
-      parts: [{ text: msg.parts ? msg.parts[0].text : (msg.text || "") }]
-    })).filter(msg => msg.parts[0].text.trim() !== "");
-
-    // حذف أي رسالة للذكاء الاصطناعي لو كانت هي الأولى
-    if (rawHistory.length > 0 && rawHistory[0].role === 'model') {
-        rawHistory.shift();
-    }
-
-    // 3. دمج الرسائل المتتالية (عشان جوجل متضربش إيرور)
-    let cleanHistory = [];
-    let lastRole = null;
-    for (let msg of rawHistory) {
-        if (msg.role !== lastRole) {
-            cleanHistory.push(msg);
-            lastRole = msg.role;
-        } else {
-            cleanHistory[cleanHistory.length - 1].parts[0].text += "\n" + msg.parts[0].text;
+    // --- الفلترة الصارمة للتاريخ ---
+    let formattedHistory = [];
+    
+    if (Array.isArray(history) && history.length > 0) {
+      history.forEach((msg) => {
+        // تحويل أي Role لـ user أو model فقط
+        const role = (msg.role === 'user') ? 'user' : 'model';
+        // التأكد من وجود نص
+        const text = msg.parts?.[0]?.text || msg.text || "";
+        
+        if (text.trim() !== "") {
+          // لو الرسالة اللي فاتت نفس الـ role، ادمجهم مع بعض (عشان جوجل ميزعلش)
+          if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === role) {
+            formattedHistory[formattedHistory.length - 1].parts[0].text += "\n" + text;
+          } else {
+            formattedHistory.push({ role, parts: [{ text }] });
+          }
         }
+      });
     }
 
-    // 4. إرسال الطلب
-    const chat = model.startChat({ history: cleanHistory });
+    // قانون جوجل: لازم التاريخ يبدأ بـ user. لو بدأ بـ model، احذفه.
+    if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+      formattedHistory.shift();
+    }
+
+    const chat = model.startChat({ history: formattedHistory });
     const result = await chat.sendMessage(message);
 
     res.status(200).json({ success: true, reply: result.response.text() });
 
   } catch (error) {
-    // السطر ده هيطبع المشكلة الحقيقية الجديدة (لو حصلت)
-    console.error("🔥 LATEST GEMINI ERROR:", error);
-    res.status(500).json({ success: false, message: "نعتذر، المساعد الذكي غير متاح حالياً. يرجى المحاولة لاحقاً." });
+    // أهم سطر: هيطبعلنا في Railway السبب الحقيقي وراء الـ 500
+    console.error("❌ GEMINI ERROR:", error.message);
+    if (error.response) console.error("📝 ERROR DETAILS:", JSON.stringify(error.response.data));
+    
+    res.status(500).json({ success: false, message: "نعتذر، المساعد الذكي غير متاح حالياً." });
   }
 };
