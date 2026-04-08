@@ -72,6 +72,7 @@ app.use('/api/community', require('./routes/community.routes'));
 app.use('/api/leaderboard', require('./routes/leaderboard.routes'));
 app.use('/api/achievements', require('./routes/achievements.routes'));
 app.use('/api/mutashabihat', require('./routes/mutashabihat.routes'));
+app.use('/api/ai', require('./routes/ai.routes'));
 app.use((req, res) => {
   res.status(404).json({
     success: false,
