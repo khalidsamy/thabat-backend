@@ -46,8 +46,41 @@ exports.chatWithCoach = async (req, res, next) => {
       - Language: Respond strictly in Arabic (unless the user explicitly asks in English).`
     });
 
+    // Sanitize History: GEMINI STRICTLY REQUIRES history to start with role: 'user' 
+    // and alternate roles (user, model, user, model).
+    const sanitizeHistory = (inputHistory) => {
+      if (!Array.isArray(inputHistory) || inputHistory.length === 0) return [];
+
+      let sanitized = [];
+      let foundFirstUser = false;
+
+      for (const msg of inputHistory) {
+        // 1. Skip everything until the first 'user' message
+        if (!foundFirstUser) {
+          if (msg.role === 'user') {
+            foundFirstUser = true;
+            sanitized.push(msg);
+          }
+          continue;
+        }
+
+        // 2. Ensure roles alternate strictly
+        const lastMsg = sanitized[sanitized.length - 1];
+        if (msg.role === lastMsg.role) {
+          // If the role is the same, merge the parts (or just use latest text)
+          lastMsg.parts = [...lastMsg.parts, ...msg.parts];
+        } else {
+          sanitized.push(msg);
+        }
+      }
+
+      return sanitized;
+    };
+
+    const formattedHistory = sanitizeHistory(history || []);
+
     const chat = model.startChat({
-      history: history || [],
+      history: formattedHistory,
       generationConfig: {
         maxOutputTokens: 500,
       },
