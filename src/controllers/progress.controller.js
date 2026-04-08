@@ -1,5 +1,6 @@
 const Progress = require('../models/Progress.model');
 const User = require('../models/User.model');
+const Activity = require('../models/Activity.model');
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -253,6 +254,43 @@ exports.updateProgress = async (req, res, next) => {
     progress.history = progress.history.filter(e => new Date(e.date).getTime() >= cutoff.getTime());
 
     progress.lastUpdate = today;
+    
+    // ─── Community Goal & Activity Tracking ────────────────────────────────
+    const oldTotal = progress.totalMemorized - pages;
+    const newTotal = progress.totalMemorized;
+    
+    // 1. Juz Completion Activities
+    const oldJuz = Math.floor(oldTotal / 20);
+    const newJuz = Math.floor(newTotal / 20);
+    
+    if (newJuz > oldJuz && newJuz > 0) {
+      const user = await User.findById(req.user.userId).select('name');
+      const nameParts = (user?.name || 'A Servant').split(' ');
+      const anonName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : nameParts[0];
+
+      await Activity.create({
+        user: req.user.userId,
+        anonymizedName: anonName,
+        milestoneType: 'JUZ_COMPLETE',
+        milestoneValue: `Juz ${newJuz}`
+      }).catch(err => console.error('Activity creation failed:', err));
+    }
+
+    // 2. Khatma Completion Logic
+    if (newTotal >= 604 && oldTotal < 604) {
+      progress.khatmasCompleted += 1;
+      const user = await User.findById(req.user.userId).select('name');
+      const nameParts = (user?.name || 'A Servant').split(' ');
+      const anonName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : nameParts[0];
+
+      await Activity.create({
+        user: req.user.userId,
+        anonymizedName: anonName,
+        milestoneType: 'KHATMA_COMPLETE',
+        milestoneValue: 'The Holy Quran'
+      }).catch(err => console.error('Khatma Activity failed:', err));
+    }
+
     await progress.save();
 
     res.status(200).json({ success: true, progress });

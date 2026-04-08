@@ -96,6 +96,11 @@ const progressSchema = new mongoose.Schema(
       of: Number,
       default: {},
     },
+    khatmasCompleted: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );

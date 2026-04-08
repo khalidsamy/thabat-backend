@@ -1,6 +1,7 @@
 const Reflection = require('../models/Reflection.js');
 const Progress = require('../models/Progress.model.js');
 const User = require('../models/User.model.js');
+const Activity = require('../models/Activity.model.js');
 
 /**
  * @desc    Post a spiritual reflection
@@ -118,6 +119,74 @@ exports.addDua = async (req, res, next) => {
     res.status(200).json({
       success: true,
       duaCount: reflection.duaCount
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get global community stats and recent activities
+ * @route   GET /api/community/stats
+ * @access  Private
+ */
+exports.getCommunityStats = async (req, res, next) => {
+  try {
+    // Aggregating total khatmas completed by all users
+    const stats = await Progress.aggregate([
+      { $group: { _id: null, totalKhatmas: { $sum: '$khatmasCompleted' } } }
+    ]);
+
+    const totalKhatmas = stats[0]?.totalKhatmas || 0;
+
+    // Fetching the last 15 milestones for the Encouragement Wall
+    const recentActivities = await Activity.find()
+      .sort({ createdAt: -1 })
+      .limit(15);
+
+    res.status(200).json({
+      success: true,
+      totalKhatmas,
+      recentActivities
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Send anonymous encouragement (Mubarak!) to a milestone
+ * @route   POST /api/community/cheer/:id
+ * @access  Private
+ */
+exports.sendEncouragement = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    const activity = await Activity.findById(id);
+
+    if (!activity) {
+      return res.status(404).json({
+        success: false,
+        message: 'Milestone not found.'
+      });
+    }
+
+    if (activity.cheeredBy.includes(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already offered encouragement.'
+      });
+    }
+
+    activity.cheeredBy.push(userId);
+    activity.cheersCount += 1;
+    await activity.save();
+
+    res.status(200).json({
+      success: true,
+      cheersCount: activity.cheersCount
     });
   } catch (error) {
     next(error);
