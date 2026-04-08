@@ -32,7 +32,16 @@ exports.getUserProfile = async (req, res, next) => {
  */
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { name, currentTargetSurah, reviewPace } = req.body;
+    const { 
+      name, 
+      currentTargetSurah, 
+      reviewPace, 
+      setupCompleted, 
+      hifzStatus, 
+      currentGoal, 
+      dailyCapacity, 
+      revisionIntensity 
+    } = req.body;
     
     // Find and update the user
     const user = await User.findById(req.user.userId);
@@ -48,19 +57,18 @@ exports.updateProfile = async (req, res, next) => {
     if (name !== undefined) user.name = name.trim();
     if (currentTargetSurah !== undefined) user.currentTargetSurah = currentTargetSurah.trim();
     if (reviewPace !== undefined) user.reviewPace = reviewPace;
+    if (setupCompleted !== undefined) user.setupCompleted = setupCompleted;
+    if (hifzStatus !== undefined) user.hifzStatus = hifzStatus;
+    if (currentGoal !== undefined) user.currentGoal = currentGoal;
+    if (dailyCapacity !== undefined) user.dailyCapacity = dailyCapacity;
+    if (revisionIntensity !== undefined) user.revisionIntensity = revisionIntensity;
 
     await user.save();
 
     return res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        currentTargetSurah: user.currentTargetSurah,
-        reviewPace: user.reviewPace
-      }
+      user: user.toObject()
     });
   } catch (error) {
     return next(error);

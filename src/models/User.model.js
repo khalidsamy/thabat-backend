@@ -28,6 +28,28 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    setupCompleted: {
+      type: Boolean,
+      default: false,
+    },
+    hifzStatus: {
+      juzCount: { type: Number, default: 0 },
+      surahs: [{ type: Number }],
+    },
+    currentGoal: {
+      type: String,
+      enum: ['MEMORIZING_NEW', 'REVIEWING_OLD'],
+      default: 'MEMORIZING_NEW',
+    },
+    dailyCapacity: {
+      pages: { type: Number, default: 1 },
+      lines: { type: Number, default: 0 },
+    },
+    revisionIntensity: {
+      type: String,
+      enum: ['1_JUZ', '2_JUZ', 'HIZB', 'RUB_EL_HIZB', 'NONE'],
+      default: 'NONE',
+    },
     lastActive: {
       type: Date,
       default: Date.now,
