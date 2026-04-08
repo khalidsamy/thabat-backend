@@ -76,6 +76,21 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    examStats: {
+      passed: { type: Number, default: 0 },
+      failed: { type: Number, default: 0 },
+    },
+    examHistory: [
+      {
+        juz: Number,
+        surah: String,
+        status: { type: String, enum: ['PASSED', 'FAILED'] },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

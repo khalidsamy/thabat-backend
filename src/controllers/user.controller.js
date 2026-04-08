@@ -143,3 +143,47 @@ exports.changePassword = async (req, res, next) => {
     return next(error);
   }
 };
+
+/**
+ * @desc    Record result of a random exam/test
+ * @route   POST /api/user/exam-result
+ * @access  Private
+ */
+exports.recordExamResult = async (req, res, next) => {
+  try {
+    const { juz, surah, status } = req.body;
+    
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update stats and history
+    if (!user.examStats) user.examStats = { passed: 0, failed: 0 };
+    
+    if (status === 'PASSED') {
+      user.examStats.passed += 1;
+    } else {
+      user.examStats.failed += 1;
+    }
+
+    user.examHistory.push({
+      juz,
+      surah,
+      status,
+      date: new Date()
+    });
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      stats: user.examStats
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
