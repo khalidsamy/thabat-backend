@@ -19,7 +19,7 @@ exports.chatWithCoach = async (req, res, next) => {
 
     // 1. تعريف الموديل الأكثر استقراراً (بدون systemInstruction عشان نمنع الـ 404)
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // 2. تعريف شخصية المساعد (Persona)
     const personaPrompt = `You are 'Thabat AI Coach'. You are a specialized expert in Quranic sciences, Hifz techniques, and the methodology of Sheikh Alaa Hamed.
