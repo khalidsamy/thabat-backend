@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User.model');
+const Progress = require('../models/Progress.model');
 
 /**
  * @desc    Get current user profile
@@ -26,7 +27,7 @@ exports.getUserProfile = async (req, res, next) => {
 };
 
 /**
- * @desc    Update user profile (e.g., target Surah, review pace)
+ * @desc    Update user profile (e.g., target Surah, revision intensity)
  * @route   PATCH /api/user/profile
  * @access  Private
  */
@@ -61,7 +62,15 @@ exports.updateProfile = async (req, res, next) => {
     if (hifzStatus !== undefined) user.hifzStatus = hifzStatus;
     if (currentGoal !== undefined) user.currentGoal = currentGoal;
     if (dailyCapacity !== undefined) user.dailyCapacity = dailyCapacity;
-    if (revisionIntensity !== undefined) user.revisionIntensity = revisionIntensity;
+    
+    if (revisionIntensity !== undefined) {
+      user.revisionIntensity = revisionIntensity;
+      // Database Hard-Sync: Update progress model as well
+      await Progress.findOneAndUpdate(
+         { user: user._id },
+         { revisionGoal: revisionIntensity }
+      ).catch(err => console.error('Sync to Progress failed:', err));
+    }
 
     await user.save();
 
